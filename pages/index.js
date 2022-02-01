@@ -1,8 +1,26 @@
 import Head from 'next/head';
 import Image from 'next/image';
 import styles from '../styles/Home.module.css';
+import {fetchRedditData} from '../lib/fetch-reddit-data';
+import {useState} from 'react';
 
-export default function Home() {
+export async function getStaticProps() {
+  const redditData = await fetchRedditData();
+  return {
+    props: {
+      redditData,
+    },
+  };
+}
+
+export default function Home({redditData: initialData}) {
+  const [redditData, setRedditData] = useState(initialData);
+  const fetchMore = () => {
+    fetchRedditData(redditData[redditData.length - 1].name).then((newPosts) => {
+      setRedditData([...newPosts]);
+    });
+    setRedditData([]);
+  };
   return (
     <div className={styles.container}>
       <Head>
@@ -15,33 +33,34 @@ export default function Home() {
         <h1 className={styles.title}>Reddit Feed</h1>
 
         <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
+          {redditData.map((item) => (
+            <a
+              href={`https://reddit.com${item.permalink}`}
+              className={styles.card}
+              key={item.name}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <h2>{item.title}</h2>
+              {/* only show image if it's from i.redd.it */}
+              {item.url.includes('i.redd.it') && (
+                <Image
+                  src={item.url}
+                  alt={item.title}
+                  width="300"
+                  height="300"
+                />
+              )}
+            </a>
+          ))}
 
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
+          <button
             className={styles.card}
+            onClick={fetchMore}
+            style={{cursor: 'pointer'}}
           >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+            Next Page
+          </button>
         </div>
       </main>
 
